@@ -36,7 +36,9 @@ public class Defect
     public int DefectId { get; set; }
     public int p { get; set; }
     public int MeasureId { get; set; }
+    public int DefectLength { get; set; } = 0;
     public String Level { get; set; }
     public double Delta { get; set; }
+
 
 }

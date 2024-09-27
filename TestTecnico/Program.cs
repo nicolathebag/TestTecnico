@@ -15,8 +15,40 @@ class Program
 {
     static void Main(string[] args)
     {
-        List<double> thresholds = new List<double>();
+        List<double> thresholdsp1 = new List<double>();
+        List<double> thresholdsp2 = new List<double>();
+        List<double> thresholdsp3 = new List<double>();
+        List<double> thresholdsp4 = new List<double>();
 
+        GetThresholdsFromDB(thresholdsp1, thresholdsp2, thresholdsp3, thresholdsp4);
+
+        using (var context = new MeasuresContext())
+        {
+            //SETUP
+            //GetDataFromCsv(context);
+
+            //RESET DEFECTS TABLE
+            ResetDefects(context);
+
+
+            //DATA ANALYSIS
+            var list = context.Measures;            
+
+            List<Defect> TotalDefects = new List<Defect>();
+
+            TotalDefects.AddRange(CalculateDefectsP1(thresholdsp1,1,list));
+            //TotalDefects.AddRange(CalculateDefectsP2(thresholdsp2, 2, list));
+            //TotalDefects.AddRange(CalculateDefectsP3(thresholdsp3, 3, list));
+            //TotalDefects.AddRange(CalculateDefectsP4(thresholdsp4, 4, list));
+
+            context.Defects.AddRange(TotalDefects);
+            context.SaveChanges();
+        }
+
+    }
+
+    private static void GetThresholdsFromDB(List<double> thresholdsp1, List<double> thresholdsp2, List<double> thresholdsp3, List<double> thresholdsp4)
+    {
         using (SqlConnection connection = new SqlConnection("Server=localhost;Database=MISURAZIONI_FERROVIARIE;Trusted_Connection=true;TrustServerCertificate=True"))
         {
             using (SqlCommand cmd = new SqlCommand("select * from [dbo].[Thresholds]", connection))
@@ -24,273 +56,307 @@ class Program
                 connection.Open();
                 using (SqlDataReader reader = cmd.ExecuteReader())
                 {
-                    while (reader.Read())
-                    {
-                        var dbl = reader.GetInt32(0);
-                        var dbl1 = reader.GetInt32(1);
-                        var dbl2 = reader.GetInt32(2);
-                        thresholds.Add(dbl);
-                        thresholds.Add(dbl1);
-                        thresholds.Add(dbl2);
-                    }
+                    reader.Read();
+                    
+                    var dbl = reader.GetInt32(0);
+                    var dbl1 = reader.GetInt32(1);
+                    var dbl2 = reader.GetInt32(2);
+                    thresholdsp1.Add(dbl);
+                    thresholdsp1.Add(dbl1);
+                    thresholdsp1.Add(dbl2);
+                    
+                    reader.Read();
+                    
+                    dbl = reader.GetInt32(0);
+                    dbl1 = reader.GetInt32(1);
+                    dbl2 = reader.GetInt32(2);
+                    thresholdsp2.Add(dbl);
+                    thresholdsp2.Add(dbl1);
+                    thresholdsp2.Add(dbl2);
+                    
+                    reader.Read();
+                    
+                    dbl = reader.GetInt32(0);
+                    dbl1 = reader.GetInt32(1);
+                    dbl2 = reader.GetInt32(2);
+                    thresholdsp3.Add(dbl);
+                    thresholdsp3.Add(dbl1);
+                    thresholdsp3.Add(dbl2);
+                    
+                    reader.Read();
+                    
+                    dbl = reader.GetInt32(0);
+                    dbl1 = reader.GetInt32(1);
+                    dbl2 = reader.GetInt32(2);
+                    thresholdsp4.Add(dbl);
+                    thresholdsp4.Add(dbl1);
+                    thresholdsp4.Add(dbl2);
+                    
                 }
-            }
-
-
-            using (var context = new MeasuresContext())
-            {
-                //using (var reader = new StreamReader(@"C:\Users\nlosa\source\repos\TestTecnico\TestTecnico\ff3f3add-7b1d-4f08-ba27-7a9c24fbcd34.csv"))
-                //using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
-                //{
-                //    var records = csv.GetRecords<Measure>().ToList();
-                //    Console.WriteLine(records.ToString());
-                //    context.Measures.AddRange(records);
-                //    context.SaveChanges();
-                //}
-
-                var list = context.Measures;
-
-                // reset defects table
-                var records = from m in context.Defects
-                              select m;
-                foreach (var record in records)
-                {
-                    context.Defects.Remove(record);
-                }
-                context.SaveChanges();
-
-                var defectsLowOnp1 = context.Measures
-                    .AsEnumerable()
-                    .Where(m => m.p1 > thresholds[0])
-                    .OrderBy(m => m.MeasureId)
-                    .ToList();
-                List<Defect> DefectsLowOnp1 = new List<Defect>();
-                Defect temp = new Defect();
-                foreach (var item in defectsLowOnp1)
-                {
-                    temp.MeasureId = item.MeasureId;
-                    temp.Level = "Low";
-                    temp.Delta = thresholds[0] - item.p1;
-                    temp.p = 1;
-                    DefectsLowOnp1.Add(temp);
-                }
-                CompressDefects(DefectsLowOnp1);
-                context.Defects.AddRange(DefectsLowOnp1);
-
-                var defectsMediumOnp1 = context.Measures
-                    .AsEnumerable()
-                    .Where(m => m.p1 > thresholds[1])
-                    .OrderBy(m => m.MeasureId)
-                    .ToList();
-                List<Defect> DefectsMediumOnp1 = new List<Defect>();
-                temp = new Defect();
-                foreach (var item in defectsMediumOnp1)
-                {
-                    temp.MeasureId = item.MeasureId;
-                    temp.Level = "Medium";
-                    temp.Delta = thresholds[1] - item.p1;
-                    temp.p = 1;
-                    DefectsMediumOnp1.Add(temp);
-                }
-                CompressDefects(DefectsMediumOnp1);
-                context.Defects.AddRange(DefectsMediumOnp1);
-
-                var defectsHighOnp1 = context.Measures
-                    .AsEnumerable()
-                    .Where(m => m.p1 > thresholds[2])
-                    .OrderBy(m => m.MeasureId)
-                    .ToList();
-                List<Defect> DefectsHighOnp1 = new List<Defect>();
-                temp = new Defect();
-                foreach (var item in defectsHighOnp1)
-                {
-                    temp.MeasureId = item.MeasureId;
-                    temp.Level = "High";
-                    temp.Delta = thresholds[2] - item.p1;
-                    temp.p = 1;
-                    DefectsHighOnp1.Add(temp);
-                }
-                CompressDefects(DefectsHighOnp1);
-                context.Defects.AddRange(DefectsHighOnp1);
-
-                var defectsLowOnp2 = context.Measures
-                    .AsEnumerable()
-                    .Where(m => m.p2 > thresholds[3])
-                    .OrderBy(m => m.MeasureId)
-                    .ToList();
-                List<Defect> DefectsLowOnp2 = new List<Defect>();
-                temp = new Defect();
-                foreach (var item in defectsLowOnp2)
-                {
-                    temp.MeasureId = item.MeasureId;
-                    temp.Level = "Low";
-                    temp.Delta = thresholds[3] - item.p2;
-                    temp.p = 2;
-                    DefectsLowOnp2.Add(temp);
-                }
-                CompressDefects(DefectsLowOnp2);
-                context.Defects.AddRange(DefectsLowOnp2);
-
-                var defectsMediumOnp2 = context.Measures
-                    .AsEnumerable()
-                    .Where(m => m.p2 > thresholds[4])
-                    .OrderBy(m => m.MeasureId)
-                    .ToList();
-                List<Defect> DefectsMediumOnp2 = new List<Defect>();
-                temp = new Defect();
-                foreach (var item in defectsMediumOnp2)
-                {
-                    temp.MeasureId = item.MeasureId;
-                    temp.Level = "Medium";
-                    temp.Delta = thresholds[4] - item.p2;
-                    temp.p = 2;
-                    DefectsMediumOnp2.Add(temp);
-                }
-                CompressDefects(DefectsMediumOnp2);
-                context.Defects.AddRange(DefectsMediumOnp2);
-
-                var defectsHighOnp2 = context.Measures
-                    .AsEnumerable()
-                    .Where(m => m.p2 > thresholds[5])
-                    .OrderBy(m => m.MeasureId)
-                    .ToList();
-                List<Defect> DefectsHighOnp2 = new List<Defect>();
-                temp = new Defect();
-                foreach (var item in defectsHighOnp2)
-                {
-                    temp.MeasureId = item.MeasureId;
-                    temp.Level = "High";
-                    temp.Delta = thresholds[5] - item.p2;
-                    temp.p = 2;
-                    DefectsHighOnp2.Add(temp);
-                }
-                CompressDefects(DefectsHighOnp2);
-                context.Defects.AddRange(DefectsHighOnp2);
-
-                var defectsLowOnp3 = context.Measures
-                    .AsEnumerable()
-                    .Where(m => m.p3 > thresholds[6])
-                    .OrderBy(m => m.MeasureId)
-                    .ToList();
-                List<Defect> DefectsLowOnp3 = new List<Defect>();
-                temp = new Defect();
-                foreach (var item in defectsLowOnp3)
-                {
-                    temp.MeasureId = item.MeasureId;
-                    temp.Level = "Low";
-                    temp.Delta = thresholds[6] - item.p3;
-                    temp.p = 3;
-                    DefectsLowOnp3.Add(temp);
-                }
-                CompressDefects(DefectsLowOnp3);
-                context.Defects.AddRange(DefectsLowOnp3);
-
-                var defectsMediumOnp3 = context.Measures
-                    .AsEnumerable()
-                    .Where(m => m.p3 > thresholds[7])
-                    .OrderBy(m => m.MeasureId)
-                    .ToList();
-                List<Defect> DefectsMediumOnp3 = new List<Defect>();
-                temp = new Defect();
-                foreach (var item in defectsMediumOnp3)
-                {
-                    temp.MeasureId = item.MeasureId;
-                    temp.Level = "Medium";
-                    temp.Delta = thresholds[7] - item.p3;
-                    temp.p = 3;
-                    DefectsMediumOnp3.Add(temp);
-                }
-                CompressDefects(DefectsMediumOnp3);
-                context.Defects.AddRange(DefectsMediumOnp3);
-
-                var defectsHighOnp3 = context.Measures
-                    .AsEnumerable()
-                    .Where(m => m.p3 > thresholds[8])
-                    .OrderBy(m => m.MeasureId)
-                    .ToList();
-                List<Defect> DefectsHighOnp3 = new List<Defect>();
-                temp = new Defect();
-                foreach (var item in defectsHighOnp3)
-                {
-                    temp.MeasureId = item.MeasureId;
-                    temp.Level = "High";
-                    temp.Delta = thresholds[8] - item.p3;
-                    temp.p = 3;
-                    DefectsHighOnp3.Add(temp);
-                }
-                CompressDefects(DefectsHighOnp3);
-                context.Defects.AddRange(DefectsHighOnp3);
-
-                var defectsLowOnp4 = context.Measures
-                    .AsEnumerable()
-                    .Where(m => m.p4 > thresholds[9])
-                    .OrderBy(m => m.MeasureId)
-                    .ToList();
-                List<Defect> DefectsLowOnp4 = new List<Defect>();
-                temp = new Defect();
-                foreach (var item in defectsLowOnp4)
-                {
-                    temp.MeasureId = item.MeasureId;
-                    temp.Level = "Low";
-                    temp.Delta = thresholds[9] - item.p4;
-                    temp.p = 4;
-                    DefectsLowOnp4.Add(temp);
-                }
-                CompressDefects(DefectsLowOnp4);
-                context.Defects.AddRange(DefectsLowOnp4);
-
-                var defectsMediumOnp4 = context.Measures
-                    .AsEnumerable()
-                    .Where(m => m.p4 > thresholds[10])
-                    .OrderBy(m => m.MeasureId)
-                    .ToList();
-                List<Defect> DefectsMediumOnp4 = new List<Defect>();
-                temp = new Defect();
-                foreach (var item in defectsMediumOnp4)
-                {
-                    temp.MeasureId = item.MeasureId;
-                    temp.Level = "Medium";
-                    temp.Delta = thresholds[10] - item.p4;
-                    temp.p = 4;
-                    DefectsMediumOnp4.Add(temp);
-                }
-                CompressDefects(DefectsMediumOnp4);
-                context.Defects.AddRange(DefectsMediumOnp4);
-
-                var defectsHighOnp4 = context.Measures
-                    .AsEnumerable()
-                    .Where(m => m.p4 > thresholds[11])
-                    .OrderBy(m => m.MeasureId)
-                    .ToList();
-                List<Defect> DefectsHighOnp4 = new List<Defect>();
-                temp = new Defect();
-                foreach (var item in defectsHighOnp4)
-                {
-                    temp.MeasureId = item.MeasureId;
-                    temp.Level = "High";
-                    temp.Delta = thresholds[11] - item.p4;
-                    temp.p = 4;
-                    DefectsHighOnp4.Add(temp);
-                }
-                CompressDefects(DefectsHighOnp4);
-                context.Defects.AddRange(DefectsHighOnp4);
-
-
-                context.SaveChanges();
             }
         }
+    }
+
+    private static List<Defect> CalculateDefectsP1(List<double> thresholds, int p,  DbSet<Measure> list, double initialMM = 0, double finalMM = double.MaxValue)
+    {
+        List<Defect> AllDefects = new List<Defect>();
+        
+        //prendo tutte le misure maggiori della soglia bassa
+        var defectsLow = list
+                        .AsEnumerable()
+                        .Where(m => m.p1 > thresholds[0] && m.p1 < thresholds[1] && m.MeasureId > initialMM && m.MeasureId < finalMM)
+                        .OrderBy(m => m.MeasureId)
+                        .ToList();
+
+        List<Defect> DefectsLow = new List<Defect>();        
+        
+        foreach (var item in defectsLow)
+        {
+            GetDefects(thresholds[0], p, DefectsLow, item.p1, item.MeasureId, "Low");
+        }
+        CompressDefects(DefectsLow);
+        AllDefects.AddRange(DefectsLow);
+
+        var defectsMedium = list
+                            .AsEnumerable()
+                            .Where(m => m.p1 > thresholds[1] && m.p1 < thresholds[2] && m.MeasureId > initialMM && m.MeasureId < finalMM)
+                            .OrderBy(m => m.MeasureId)
+                            .ToList();
+        List<Defect> DefectsMedium = new List<Defect>();
+       
+        foreach (var item in defectsMedium)
+        {
+            GetDefects(thresholds[1], p, DefectsMedium, item.p1, item.MeasureId, "Medium");
+        }
+        CompressDefects(DefectsMedium);
+        AllDefects.AddRange(DefectsMedium);
+
+        var defectsHigh = list
+                        .AsEnumerable()
+                        .Where(m => m.p1 > thresholds[2] && m.MeasureId > initialMM && m.MeasureId < finalMM)
+                        .OrderBy(m => m.MeasureId)
+                        .ToList();
+        List<Defect> DefectsHigh = new List<Defect>();
+        foreach (var item in defectsHigh)
+        {
+            GetDefects(thresholds[2], p, DefectsHigh, item.p1, item.MeasureId, "High");
+        }
+        CompressDefects(DefectsHigh);
+        AllDefects.AddRange(DefectsMedium);
+
+        return AllDefects;
+
+    }    
+    private static List<Defect> CalculateDefectsP2(List<double> thresholds, int p, DbSet<Measure> list, double initialMM = 0, double finalMM = double.MaxValue)
+    {
+        List<Defect> AllDefects = new List<Defect>();
+
+        //prendo tutte le misure maggiori della soglia bassa
+        var defectsLow = list
+                        .AsEnumerable()
+                        .Where(m => m.p2 > thresholds[0] && m.p2 < thresholds[1] && m.MeasureId > initialMM && m.MeasureId < finalMM)
+                        .OrderBy(m => m.MeasureId)
+                        .ToList();
+
+        List<Defect> DefectsLow = new List<Defect>();
+
+
+        foreach (var item in defectsLow)
+        {
+            GetDefects(thresholds[0], p, DefectsLow, item.p2, item.MeasureId, "Low");
+        }
+        CompressDefects(DefectsLow);
+        AllDefects.AddRange(DefectsLow);
+
+        var defectsMedium = list
+                            .AsEnumerable()
+                            .Where(m => m.p2 > thresholds[1] && m.p2 < thresholds[2] && m.MeasureId > initialMM && m.MeasureId < finalMM)
+                            .OrderBy(m => m.MeasureId)
+                            .ToList();
+        List<Defect> DefectsMedium = new List<Defect>();
+
+        foreach (var item in defectsMedium)
+        {
+            GetDefects(thresholds[1], p, DefectsMedium, item.p2, item.MeasureId, "Medium");
+        }
+        CompressDefects(DefectsMedium);
+        AllDefects.AddRange(DefectsMedium);
+
+        var defectsHigh = list
+                        .AsEnumerable()
+                        .Where(m => m.p2 > thresholds[2] && m.MeasureId > initialMM && m.MeasureId < finalMM)
+                        .OrderBy(m => m.MeasureId)
+                        .ToList();
+        List<Defect> DefectsHigh = new List<Defect>();
+        foreach (var item in defectsHigh)
+        {
+            GetDefects(thresholds[2], p, DefectsHigh, item.p2, item.MeasureId, "High");
+        }
+        CompressDefects(DefectsHigh);
+        AllDefects.AddRange(DefectsMedium);
+
+        return AllDefects;
+
+    }
+    private static List<Defect> CalculateDefectsP3(List<double> thresholds, int p, DbSet<Measure> list, double initialMM = 0, double finalMM = double.MaxValue)
+    {
+        List<Defect> AllDefects = new List<Defect>();
+
+        //prendo tutte le misure maggiori della soglia bassa
+        var defectsLow = list
+                        .AsEnumerable()
+                        .Where(m => m.p3 > thresholds[0] && m.p3 < thresholds[1] && m.MeasureId > initialMM && m.MeasureId < finalMM)
+                        .OrderBy(m => m.MeasureId)
+                        .ToList();
+
+        List<Defect> DefectsLow = new List<Defect>();
+
+
+        foreach (var item in defectsLow)
+        {
+            GetDefects(thresholds[0], p, DefectsLow, item.p3, item.MeasureId, "Low");
+        }
+        CompressDefects(DefectsLow);
+        AllDefects.AddRange(DefectsLow);
+
+        var defectsMedium = list
+                            .AsEnumerable()
+                            .Where(m => m.p3 > thresholds[1] && m.p3 < thresholds[2] && m.MeasureId > initialMM && m.MeasureId < finalMM)
+                            .OrderBy(m => m.MeasureId)
+                            .ToList();
+        List<Defect> DefectsMedium = new List<Defect>();
+
+        foreach (var item in defectsMedium)
+        {
+            GetDefects(thresholds[1], p, DefectsMedium, item.p3, item.MeasureId, "Medium");
+        }
+        CompressDefects(DefectsMedium);
+        AllDefects.AddRange(DefectsMedium);
+
+        var defectsHigh = list
+                        .AsEnumerable()
+                        .Where(m => m.p3 > thresholds[2] && m.MeasureId > initialMM && m.MeasureId < finalMM)
+                        .OrderBy(m => m.MeasureId)
+                        .ToList();
+        List<Defect> DefectsHigh = new List<Defect>();
+        foreach (var item in defectsHigh)
+        {
+            GetDefects(thresholds[2], p, DefectsHigh, item.p3, item.MeasureId, "High");
+        }
+        CompressDefects(DefectsHigh);
+        AllDefects.AddRange(DefectsMedium);
+
+        return AllDefects;
+
+    }
+    private static List<Defect> CalculateDefectsP4(List<double> thresholds, int p, DbSet<Measure> list, double initialMM = 0, double finalMM = double.MaxValue)
+    {
+        List<Defect> AllDefects = new List<Defect>();
+
+        //prendo tutte le misure maggiori della soglia bassa
+        var defectsLow = list
+                        .AsEnumerable()
+                        .Where(m => m.p4 > thresholds[0] && m.p4 < thresholds[1] && m.MeasureId > initialMM && m.MeasureId < finalMM)
+                        .OrderBy(m => m.MeasureId)
+                        .ToList();
+
+        List<Defect> DefectsLow = new List<Defect>();
+
+
+        foreach (var item in defectsLow)
+        {
+            GetDefects(thresholds[0], p, DefectsLow, item.p4, item.MeasureId, "Low");
+        }
+        CompressDefects(DefectsLow);
+        AllDefects.AddRange(DefectsLow);
+
+        var defectsMedium = list
+                            .AsEnumerable()
+                            .Where(m => m.p4 > thresholds[1] && m.p4 < thresholds[2] && m.MeasureId > initialMM && m.MeasureId < finalMM)
+                            .OrderBy(m => m.MeasureId)
+                            .ToList();
+        List<Defect> DefectsMedium = new List<Defect>();
+
+        foreach (var item in defectsMedium)
+        {
+            GetDefects(thresholds[1], p, DefectsMedium, item.p4, item.MeasureId, "Medium");
+        }
+        CompressDefects(DefectsMedium);
+        AllDefects.AddRange(DefectsMedium);
+
+        var defectsHigh = list
+                        .AsEnumerable()
+                        .Where(m => m.p4 > thresholds[2] && m.MeasureId > initialMM && m.MeasureId < finalMM)
+                        .OrderBy(m => m.MeasureId)
+                        .ToList();
+        List<Defect> DefectsHigh = new List<Defect>();
+        foreach (var item in defectsHigh)
+        {
+            GetDefects(thresholds[2], p, DefectsHigh, item.p4, item.MeasureId, "High");
+        }
+        CompressDefects(DefectsHigh);
+        AllDefects.AddRange(DefectsMedium);
+
+        return AllDefects;
+
+    }
+
+
+    private static void GetDefects(double threshold, int p, List<Defect> Defects, double parameter, int MeasureId, string Level)
+    {
+        Defect temp = new Defect(); 
+        temp.MeasureId = MeasureId;
+        temp.Level = Level;
+        temp.Delta = parameter - threshold;
+        temp.p = p;
+        Defects.Add(temp);
+    }
+
+    private static void GetDataFromCsv(MeasuresContext context)
+    {
+        using (var reader = new StreamReader(@"C:\Users\nlosa\source\repos\TestTecnico\TestTecnico\ff3f3add-7b1d-4f08-ba27-7a9c24fbcd34.csv"))
+        using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+        {
+            var records = csv.GetRecords<Measure>().ToList();
+            Console.WriteLine(records.ToString());
+            context.Measures.AddRange(records);
+            context.SaveChanges();
+        }
+    }
+
+    private static void ResetDefects(MeasuresContext context)
+    {
+        // RESET DEFECTS TABLE
+        var records = from m in context.Defects
+                      select m;
+        foreach (var record in records)
+        {
+            context.Defects.Remove(record);
+        }
+        context.SaveChanges();
     }
 
     private static void CompressDefects(List<Defect> DefectsOnp)
     {
         List<Defect> defectsToRemove = new List<Defect>();
-        for (int i = 0; i < DefectsOnp.Count-2; i++)
+
+        int i = 0;
+
+        int length;
+        while (i < DefectsOnp.Count - 2 )
         {
-            if (DefectsOnp[i].MeasureId == DefectsOnp[i + 2].MeasureId + 2)
+            length = 0;
+            while(DefectsOnp[i].MeasureId == DefectsOnp[i + 1].MeasureId - 1)
             {
+                length++;
                 defectsToRemove.Add(DefectsOnp[i + 1]);
+                DefectsOnp[i].DefectLength = length;
+                i++;
             }
+            i= i + length;
+            i++;
         }
+            
         foreach (var item in defectsToRemove)
         {
             DefectsOnp.Remove(item);
